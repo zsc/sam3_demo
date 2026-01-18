@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAM3 MPS 视频分割 Demo</title>
+    <link rel="stylesheet" href="web/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SAM3 (MPS) 视频分割 Demo</h1>
+            <div class="toolbar">
+                <div class="group">
+                    <label>视频源:</label>
+                    <input type="text" id="videoSource" placeholder="static/demo.mp4 or webcam" value="webcam">
+                    <button id="startBtn">开始</button>
+                </div>
+                <div class="group">
+                    <label>模式:</label>
+                    <select id="modeSelect">
+                        <option value="text">文本提示</option>
+                        <option value="interactive">交互提示 (点/框)</option>
+                    </select>
+                </div>
+                <div class="group">
+                    <label>标签:</label>
+                    <select id="labelSelect">
+                        <option value="1">正向 (Positive)</option>
+                        <option value="0">负向 (Negative)</option>
+                    </select>
+                </div>
+                <button id="clearBtn">清空提示</button>
+            </div>
+            <div class="toolbar second-row">
+                <div class="group text-prompt-group">
+                    <label>文本提示:</label>
+                    <input type="text" id="textPrompt" placeholder="输入对象名称，如 person, car...">
+                </div>
+                <div class="group">
+                    <label>Mask 阈值:</label>
+                    <input type="range" id="maskThresh" min="0" max="1" step="0.05" value="0.5">
+                    <span id="maskThreshVal">0.5</span>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="canvas-container">
+                <canvas id="mainCanvas"></canvas>
+                <div id="interactionLayer"></div>
+            </div>
+            <div class="stats-panel">
+                <div class="stat-item">RGB FPS: <span id="rgbFps">0</span></div>
+                <div class="stat-item">Seg FPS: <span id="segFps">0</span></div>
+                <div class="stat-item">模式: <span id="currentMode">-</span></div>
+                <div class="stat-item">提示状态: <span id="promptStatus">无</span></div>
+            </div>
+        </main>
+
+        <footer>
+            <p>操作说明：文本模式下直接输入；交互模式下在左侧 RGB 区域点击或拖拽。</p>
+        </footer>
+    </div>
+    <script src="web/app.js"></script>
+</body>
+</html>
