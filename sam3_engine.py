@@ -1,3 +1,4 @@
+import os
 import time
 from typing import Optional
 
@@ -46,7 +47,14 @@ class SAM3Engine:
 
     def _load_models(self):
         print("Loading SAM3 models...")
-        model_id = "facebook/sam3"
+        # Use local path provided by user
+        model_id = os.path.expanduser("~/.cache/modelscope/hub/models/facebook/sam3/")
+
+        if not os.path.exists(model_id):
+            print(f"Warning: Local path {model_id} not found. Fallback to 'facebook/sam3'")
+            model_id = "facebook/sam3"
+
+        print(f"Loading from: {model_id}")
 
         try:
             self.pcs_model = Sam3VideoModel.from_pretrained(model_id).to(
