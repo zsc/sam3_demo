@@ -71,7 +71,7 @@ pip install git+https://github.com/huggingface/transformers.git
 
 - **MPS 报错 (mps.add)**：本项目已通过强制 `float16` 严格转换修复了此问题。
 - **FPS 性能**：
-  - SAM3 推理开销较大，建议在 M2 Pro/Max 或更高芯片上运行以获得更流畅的体验。
+  - SAM3 推理开销较大，建议在 M1 Pro (0.2 FPS) 或更高芯片上运行以获得更流畅的体验。
   - 减小浏览器窗口或降低视频源分辨率可有效提升 Seg FPS。
 
 ## 开发与检查
