@@ -3,6 +3,7 @@ python + html demo（端口 8000）, side-by-side 显示 RGB 视频和 sam3 seg�
 
 
 用下面 transformers 的实现，不用官方 sam3（那个依赖 triton 无法用 mps）
+(来自 https://modelscope.cn/models/facebook/sam3)
 
 >>> from transformers import Sam3Processor, Sam3Model
 >>> import torch
