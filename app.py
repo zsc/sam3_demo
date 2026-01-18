@@ -131,7 +131,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 video_thread.start()
 
             elif msg_type == "set_text":
-                engine.set_text_prompt(payload.get("text", ""))
+                text = payload.get("text", "")
+                print(f"Received text prompt: {text}")
+                engine.set_text_prompt(text)
             elif msg_type == "add_point":
                 engine.add_point(payload.get("x"), payload.get("y"), payload.get("label"))
             elif msg_type == "add_box":

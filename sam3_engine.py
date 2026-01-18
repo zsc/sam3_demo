@@ -98,14 +98,18 @@ class SAM3Engine:
             self.session = self.pvs_processor.init_video_session(
                 inference_device=self.device, dtype=self.dtype
             )
-            # interactive session will be updated per frame or when prompt added
 
     def set_text_prompt(self, text: str):
+        print(f"Setting text prompt: {text}")
         self.text_prompt = text
         if self.mode == "text" and self.session:
-            self.session = self.pcs_processor.add_text_prompt(
-                inference_session=self.session, text=text
-            )
+            try:
+                self.session = self.pcs_processor.add_text_prompt(
+                    inference_session=self.session, text=text
+                )
+                print("Text prompt added to session.")
+            except Exception as e:
+                print(f"Error adding text prompt: {e}")
         elif self.mode != "text":
             self.init_session(mode="text")
 
@@ -149,9 +153,18 @@ class SAM3Engine:
                 model_outputs,
                 original_sizes=inputs.original_sizes,
             )
+
+            # Debug output
+            if frame_idx % 30 == 0:
+                print(f"Frame {frame_idx} (Text): Found {len(processed['masks'])} masks")
+                if len(processed["masks"]) > 0:
+                    print(f"  Scores: {processed.get('scores', 'N/A')}")
+                    m_min = processed["masks"].min().item()
+                    m_max = processed["masks"].max().item()
+                    print(f"  Mask range: {m_min:.3f} to {m_max:.3f}")
+
             if len(processed["masks"]) > 0:
                 # processed["masks"] is list of masks [N, H, W]
-                # We can combine them or just take the first few
                 masks = processed["masks"]
 
         else:  # interactive mode
@@ -164,33 +177,24 @@ class SAM3Engine:
                 input_points = []
                 input_labels = []
 
-                # Combine points and boxes into points format if needed, but processor supports both
                 if self.points:
                     pts = [[p[:2] for p in self.points]]
                     lbls = [[p[2] for p in self.points]]
                     input_points.append(pts)
                     input_labels.append(lbls)
 
-                # Sam3TrackerVideoProcessor.add_inputs_to_inference_session
-                # Needs careful formatting: [batch, obj, pts, 2]
-
-                # Simplified: just use point prompts for obj_id=1
                 pts = []
                 lbls = []
                 for p in self.points:
                     pts.append([p[0], p[1]])
                     lbls.append(p[2])
 
-                # Add boxes as points (top-left, bottom-right) or actual boxes
-                # Tracker supports input_boxes: [batch, obj, 4]
                 boxes_in = []
                 boxes_lbls = []
                 for b in self.boxes:
                     boxes_in.append([b[0], b[1], b[2], b[3]])
                     boxes_lbls.append(b[4])
 
-                # Prepare for processor
-                # obj_ids = 1 (single object for simplicity)
                 if pts or boxes_in:
                     self.pvs_processor.add_inputs_to_inference_session(
                         inference_session=self.session,
@@ -203,18 +207,14 @@ class SAM3Engine:
                     )
 
             with torch.no_grad():
-                # Streaming mode call
                 model_outputs = self.pvs_model(
                     inference_session=self.session,
                     frame=inputs.pixel_values[0].to(self.device, dtype=self.dtype),
                 )
 
-            # Post process
-            # model_outputs.pred_masks is [obj, 1, H_small, W_small]
             masks = self.pvs_processor.post_process_masks(
                 [model_outputs.pred_masks], original_sizes=[[H, W]], binarize=False
             )[0]
-            # masks is [obj, 1, H, W]
 
         end_time = time.time()
         self.seg_times.append(end_time - start_time)
@@ -247,17 +247,14 @@ class SAM3Engine:
             binary_mask = (combined_mask > self.mask_threshold).astype(np.uint8)
             mask_vis = (binary_mask * 255).astype(np.uint8)
 
-            # Overlay: Blue tint for mask
+            # Overlay: Red tint for mask
             overlay_mask = binary_mask[:, :, np.newaxis]
-            color = np.array([255, 0, 0], dtype=np.uint8)  # Blue in BGR (Wait, input is RGB)
-            # Let's use Red for overlay
             color = np.array([255, 0, 0], dtype=np.uint8)
 
             mask_rgb = (overlay_mask * color).astype(np.uint8)
             overlay = cv2.addWeighted(overlay, 0.7, mask_rgb, 0.3, 0)
 
         # Side-by-side: [RGB | Overlay | Mask]
-        # Ensure all are 3-channel
         mask_vis_3ch = cv2.cvtColor(mask_vis, cv2.COLOR_GRAY2RGB)
 
         combined = np.hstack([rgb, overlay, mask_vis_3ch])
