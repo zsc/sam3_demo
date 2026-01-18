@@ -29,6 +29,8 @@
 
 ```bash
 # 1. 基础依赖
+conda create -n sam3 python=3.12
+conda activate sam3
 pip install fastapi uvicorn[standard] opencv-python numpy pillow accelerate torch
 
 # 2. 安装 Transformers (Git Main)
