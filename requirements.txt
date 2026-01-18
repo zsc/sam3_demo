@@ -3,7 +3,7 @@ uvicorn[standard]
 opencv-python
 numpy
 pillow
-transformers
 accelerate
 torch
 ruff
+git+https://github.com/huggingface/transformers.git
