@@ -1,5 +1,6 @@
 fastapi
 kernels
+httpx[socks]
 uvicorn[standard]
 opencv-python
 numpy
