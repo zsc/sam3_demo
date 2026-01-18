@@ -1,4 +1,5 @@
 fastapi
+kernels
 uvicorn[standard]
 opencv-python
 numpy
@@ -6,5 +7,6 @@ pillow
 modelscope
 accelerate
 torch
+torchvision
 ruff
 git+https://github.com/huggingface/transformers.git
