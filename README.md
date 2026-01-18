@@ -7,6 +7,7 @@
 - **MPS 原生支持**：特意移除了 `triton` 依赖，确保模型能在 macOS (MPS) 上流畅运行。
 - **FP16 高效推理**：强制使用 `float16` 半精度推理，大幅节省显存并提升在 Apple Silicon 上的运行速度。
 - **本地权重加载**：优先支持从 ModelScope 下载的本地权重，无需依赖 Hugging Face 连接。
+  - 只用 `model.safetensors`，`sam3.pt` 可删
 - **Transformers 最新版**：基于 `transformers` 的 git main 分支开发，使用最新的 SAM3 API。
 
 ## 功能特性
