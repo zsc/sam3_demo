@@ -45,7 +45,7 @@ class SAM3Engine:
 
         self._load_models()
 
-    def _load_models(self):
+    def _load_models(self) -> None:
         print("Loading SAM3 models...")
         # Use local path provided by user
         model_id = os.path.expanduser("~/.cache/modelscope/hub/models/facebook/sam3/")
@@ -72,12 +72,36 @@ class SAM3Engine:
             # If it fails even with float32, we can't do much
             pass
 
+    def _cast_session_tensors(self, obj):
+        if torch.is_tensor(obj):
+            if torch.is_floating_point(obj):
+                return obj.to(self.device, dtype=self.dtype)
+            return obj.to(self.device)
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                obj[key] = self._cast_session_tensors(value)
+            return obj
+        if isinstance(obj, list):
+            for idx, value in enumerate(obj):
+                obj[idx] = self._cast_session_tensors(value)
+            return obj
+        if isinstance(obj, tuple):
+            return tuple(self._cast_session_tensors(value) for value in obj)
+        if hasattr(obj, "__dict__"):
+            for attr, value in vars(obj).items():
+                try:
+                    setattr(obj, attr, self._cast_session_tensors(value))
+                except Exception:
+                    continue
+            return obj
+        return obj
+
     def init_session(self, mode="text"):
         self.mode = mode
         if mode == "text":
             self.session = self.pcs_processor.init_video_session(
                 inference_device=self.device,
-                processing_device="cpu",
+                processing_device=self.device,
                 video_storage_device="cpu",
                 dtype=self.dtype,
             )
@@ -87,8 +111,9 @@ class SAM3Engine:
                 )
         else:
             self.session = self.pvs_processor.init_video_session(
-                inference_device=self.device, dtype=self.dtype
+                inference_device=self.device, processing_device=self.device, dtype=self.dtype
             )
+        self.session = self._cast_session_tensors(self.session)
 
     def set_text_prompt(self, text: str):
         print(f"Setting text prompt: {text}")
@@ -98,6 +123,7 @@ class SAM3Engine:
                 self.session = self.pcs_processor.add_text_prompt(
                     inference_session=self.session, text=text
                 )
+                self.session = self._cast_session_tensors(self.session)
                 print("Text prompt added to session.")
             except Exception as e:
                 print(f"Error adding text prompt: {e}")
@@ -139,7 +165,7 @@ class SAM3Engine:
             # Ensure strictly same dtype
             pixel_values = inputs.pixel_values[0].to(self.device, dtype=self.dtype)
 
-            with torch.no_grad():
+            with torch.no_grad(), torch.autocast(device_type=self.device.type, dtype=self.dtype):
                 model_outputs = self.pcs_model(
                     inference_session=self.session,
                     frame=pixel_values,
@@ -203,11 +229,12 @@ class SAM3Engine:
                         input_boxes=[[boxes_in]] if boxes_in else None,
                         original_size=[H, W],
                     )
+                    self.session = self._cast_session_tensors(self.session)
 
             # Ensure strictly same dtype
             pixel_values = inputs.pixel_values[0].to(self.device, dtype=self.dtype)
 
-            with torch.no_grad():
+            with torch.no_grad(), torch.autocast(device_type=self.device.type, dtype=self.dtype):
                 model_outputs = self.pvs_model(
                     inference_session=self.session,
                     frame=pixel_values,
