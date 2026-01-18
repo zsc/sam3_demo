@@ -33,6 +33,9 @@ pip install fastapi uvicorn[standard] opencv-python numpy pillow accelerate torc
 
 # 2. 安装 Transformers (Git Main)
 pip install git+https://github.com/huggingface/transformers.git
+
+# 3. 下载权重
+modelscope download --model facebook/sam3
 ```
 
 ## 模型准备

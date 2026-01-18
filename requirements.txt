@@ -3,6 +3,7 @@ uvicorn[standard]
 opencv-python
 numpy
 pillow
+modelscope
 accelerate
 torch
 ruff
