@@ -16,9 +16,10 @@ from transformers import (
 class SAM3Engine:
     def __init__(self):
         self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-        # Try float16 for MPS, fallback if needed
-        self.dtype = torch.float16 if self.device.type == "mps" else torch.float32
-
+        # MPS mixed precision often causes "mps.add op requires same element type" errors
+        # Force float32 for stability
+        self.dtype = torch.float32
+        
         print(f"Using device: {self.device}, dtype: {self.dtype}")
 
         # Models and processors
@@ -69,17 +70,8 @@ class SAM3Engine:
             print("Models loaded successfully.")
         except Exception as e:
             print(f"Error loading models: {e}")
-            if self.dtype == torch.float16:
-                print("Retrying with float32...")
-                self.dtype = torch.float32
-                self.pcs_model = Sam3VideoModel.from_pretrained(model_id).to(
-                    self.device, dtype=self.dtype
-                )
-                self.pcs_processor = Sam3VideoProcessor.from_pretrained(model_id)
-                self.pvs_model = Sam3TrackerVideoModel.from_pretrained(model_id).to(
-                    self.device, dtype=self.dtype
-                )
-                self.pvs_processor = Sam3TrackerVideoProcessor.from_pretrained(model_id)
+            # If it fails even with float32, we can't do much
+            pass
 
     def init_session(self, mode="text"):
         self.mode = mode
