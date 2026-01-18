@@ -59,8 +59,29 @@ async def websocket_endpoint(websocket: WebSocket):
         frame_idx = 0
         rgb_times = []
         engine.init_session(mode=engine.mode)
+        source_fps = cap.get(cv2.CAP_PROP_FPS)
+        if not source_fps or source_fps <= 1.0:
+            source_fps = 30.0
+        frame_interval = 1.0 / source_fps
+        next_frame_time = time.time()
 
         while not stop_event.is_set():
+            now = time.time()
+            if now < next_frame_time:
+                time.sleep(min(next_frame_time - now, 0.01))
+                continue
+
+            behind = now - next_frame_time
+            if behind > frame_interval:
+                skip = int(behind // frame_interval)
+                skipped = 0
+                while skipped < skip:
+                    if not cap.grab():
+                        break
+                    skipped += 1
+                    frame_idx += 1
+                next_frame_time += skipped * frame_interval
+
             start_time = time.time()
             ret, frame = cap.read()
             if not ret:
@@ -104,6 +125,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 loop.call_soon_threadsafe(queue.put_nowait, stats)
 
             frame_idx += 1
+            next_frame_time += frame_interval
 
         cap.release()
 
