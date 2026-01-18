@@ -16,10 +16,9 @@ from transformers import (
 class SAM3Engine:
     def __init__(self):
         self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-        # MPS mixed precision often causes "mps.add op requires same element type" errors
-        # Force float32 for stability
-        self.dtype = torch.float32
-        
+        # User requested float16 for performance
+        self.dtype = torch.float16 if self.device.type == "mps" else torch.float32
+
         print(f"Using device: {self.device}, dtype: {self.dtype}")
 
         # Models and processors
@@ -133,13 +132,20 @@ class SAM3Engine:
                 # No prompt, just return original frame or empty mask
                 return self._compose_result(frame_rgb, None)
 
-            inputs = self.pcs_processor(images=frame_rgb, device=self.device, return_tensors="pt")
+            inputs = self.pcs_processor(
+                images=frame_rgb, device=self.device, return_tensors="pt"
+            )
+
+            # Ensure strictly same dtype
+            pixel_values = inputs.pixel_values[0].to(self.device, dtype=self.dtype)
+
             with torch.no_grad():
                 model_outputs = self.pcs_model(
                     inference_session=self.session,
-                    frame=inputs.pixel_values[0].to(self.device, dtype=self.dtype),
+                    frame=pixel_values,
                     reverse=False,
                 )
+
             processed = self.pcs_processor.postprocess_outputs(
                 self.session,
                 model_outputs,
@@ -198,10 +204,13 @@ class SAM3Engine:
                         original_size=[H, W],
                     )
 
+            # Ensure strictly same dtype
+            pixel_values = inputs.pixel_values[0].to(self.device, dtype=self.dtype)
+
             with torch.no_grad():
                 model_outputs = self.pvs_model(
                     inference_session=self.session,
-                    frame=inputs.pixel_values[0].to(self.device, dtype=self.dtype),
+                    frame=pixel_values,
                 )
 
             masks = self.pvs_processor.post_process_masks(
